@@ -1,0 +1,146 @@
+﻿@model CurrencyConverterModel
+
+@{
+    ViewData["Title"] = "Currency Converter";
+}
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+    }
+
+    #currencyConverterForm {
+        max-width: 400px;
+        margin: 20px auto;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+    }
+
+    #convertButton {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 10px; /* Added margin to separate buttons */
+    }
+
+    #convertApiButton {
+        background-color: #3498db;
+        color: white;
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    #resultContainer {
+        margin-top: 20px;
+        font-weight: bold;
+    }
+
+    .error {
+        color: red;
+    }
+</style>
+
+<h2>Currency Converter</h2>
+
+<form id="currencyConverterForm">
+    <div>
+        <label for="CurrencyFrom">From Currency</label>
+        <input type="text" id="CurrencyFrom" name="CurrencyFrom" placeholder="Enter currency code" />
+        <span class="error" id="errorCurrencyFrom"></span>
+    </div>
+
+    <div>
+        <label for="CurrencyTo">To Currency</label>
+        <input type="text" id="CurrencyTo" name="CurrencyTo" placeholder="Enter currency code" />
+        <span class="error" id="errorCurrencyTo"></span>
+    </div>
+
+    <div>
+        <label for="Amount">Amount</label>
+        <input type="text" id="Amount" name="Amount" placeholder="Enter amount" />
+        <span class="error" id="errorAmount"></span>
+    </div>
+
+    <div>
+        <input type="button" value="Convert (Database)" id="convertButton" />
+        <input type="button" value="Convert (API)" id="convertApiButton" />
+    </div>
+</form>
+
+<div id="resultContainer"></div>
+
+@section scripts {
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#convertButton, #convertApiButton").on("click", function () {
+                // Determine the API type based on the clicked button
+                var rateType = $(this).attr("id") === "convertButton" ? "database" : "api";
+
+                // Client-side validation
+                var currencyFrom = $("#CurrencyFrom").val();
+                var currencyTo = $("#CurrencyTo").val();
+                var amount = $("#Amount").val();
+
+                // Regular expression to check for alphabetic characters only
+                var alphaRegex = /^[a-zA-Z]+$/;
+
+                if (currencyFrom.length !== 3 || !alphaRegex.test(currencyFrom)) {
+                    $("#errorCurrencyFrom").html("Please enter a valid 3-character currency code.");
+                    return;
+                } else {
+                    $("#errorCurrencyFrom").html("");
+                }
+
+                if (currencyTo.length !== 3 || !alphaRegex.test(currencyTo)) {
+                    $("#errorCurrencyTo").html("Please enter a valid 3-character currency code.");
+                    return;
+                } else {
+                    $("#errorCurrencyTo").html("");
+                }
+
+                if (isNaN(amount) || +amount <= 0) {
+                    $("#errorAmount").html("Please enter a valid positive amount.");
+                    return;
+                } else {
+                    $("#errorAmount").html("");
+                }
+
+                var formData = $("#currencyConverterForm").serialize();
+
+                // Make the AJAX call based on the selected API type
+                $.ajax({
+                    type: "POST",
+                    url: "/CurrencyConverter/ConvertCurrency" + (rateType === "api" ? "FromApi" : "FromDatabase"),
+                    data: formData,
+                    success: function (result) {
+                        if (result && result.error) {
+                            $("#resultContainer").html("<span class='error'>Error: " + result.error + "</span>");
+                        } else {
+                            $("#resultContainer").html("<strong>Converted Amount:</strong> " + result.convertedAmount);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.log("Error:", xhr.responseText);
+                        $("#resultContainer").html("<span class='error'>An unexpected error occurred during conversion.</span>");
+                    }
+                });
+            });
+        });
+    </script>
+}
